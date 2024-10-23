@@ -26,6 +26,10 @@ app.use(express.json()); // Parse JSON body
 app.post('/webhook', (req, res) => {
   const payload = req.body;
 
+  console.log('Request body:', JSON.stringify(payload, null, 2));
+  console.log('Payload ref:', payload.ref); // This should print the ref field
+
+
   // Verify the GitHub signature
   const receivedSignature = req.headers['x-hub-signature'];
 
@@ -51,7 +55,7 @@ app.post('/webhook', (req, res) => {
   }
 
   // Check if it's a push event to the main branch
-  if (payload.ref === 'refs/heads/main') {
+  if (payload.ref === "refs/heads/main") {
     console.log('Changes pushed to the main branch. Pulling latest changes and restarting service...');
 
     // Send back a status 200 before executing the command
