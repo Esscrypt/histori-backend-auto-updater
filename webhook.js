@@ -1,22 +1,27 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const { exec } = require('child_process');
 const crypto = require('crypto');
+const getRawBody = require('raw-body');
 require('dotenv').config(); // Load environment variables from .env file
 
 const app = express();
 const PORT = 3001;
 const SECRET = process.env.GITHUB_WEBHOOK_SECRET; // Fetch the secret from .env file
 
-// Middleware for parsing raw body and JSON
-app.use(
-  bodyParser.json({
-    verify: (req, res, buf, encoding) => {
-      req.rawBody = buf.toString(encoding || 'utf-8'); // Capture raw body
-      console.log('Captured raw body:', req.rawBody); // Log for debugging
-    },
-  })
-);
+// Middleware to capture the raw body for signature verification
+app.use((req, res, next) => {
+  getRawBody(req, {
+    encoding: 'utf-8',
+  }, (err, string) => {
+    if (err) {
+      return next(err);
+    }
+    req.rawBody = string;
+    next();
+  });
+});
+
+app.use(express.json()); // Parse JSON body
 
 app.post('/webhook', (req, res) => {
   const payload = req.body;
