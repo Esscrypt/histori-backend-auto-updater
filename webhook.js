@@ -21,7 +21,7 @@ app.use((req, res, next) => {
   });
 });
 
-app.use(express.json()); // For parsing application/json
+// app.use(express.json()); // For parsing application/json
 app.use(express.urlencoded({ extended: true })); 
 
 app.post('/webhook', (req, res) => {
