@@ -10,10 +10,9 @@ const SECRET = process.env.GITHUB_WEBHOOK_SECRET; // Fetch the secret from .env 
 
 // Middleware for parsing raw body
 app.use(
-  bodyParser.urlencoded({
-    extended: true,
+  bodyParser.json({
     verify: (req, res, buf) => {
-      req.rawBody = buf.toString(); // Attach the raw body for signature verification
+      req.rawBody = buf.toString(); // Attach raw body for HMAC validation
     },
   })
 );
