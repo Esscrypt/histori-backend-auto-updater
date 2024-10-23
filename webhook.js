@@ -9,19 +9,34 @@ const PORT = 3001;
 const SECRET = process.env.GITHUB_WEBHOOK_SECRET; // Fetch the secret from .env file
 
 // Middleware to capture the raw body for signature verification
-app.use((req, res, next) => {
-  getRawBody(req, {
-    encoding: 'utf-8',
-  }, (err, string) => {
-    if (err) {
-      return next(err);
-    }
-    req.rawBody = string;
-    next();
-  });
-});
+// app.use((req, res, next) => {
+//   getRawBody(req, {
+//     encoding: 'utf-8',
+//   }, (err, string) => {
+//     if (err) {
+//       return next(err);
+//     }
+//     req.rawBody = string;
+//     next();
+//   });
+// });
 
-app.use(express.json()); // Parse JSON body
+app.use(
+  bodyParser.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf.toString();
+    },
+  })
+);
+
+app.use(
+  bodyParser.urlencoded({
+    extended: true,
+    verify: (req, res, buf) => {
+      req.rawBody = buf.toString(); // Attach the raw body for signature verification
+    },
+  })
+);
 
 app.post('/webhook', (req, res) => {
   const payload = req.body;
