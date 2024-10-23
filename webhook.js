@@ -12,8 +12,8 @@ const SECRET = process.env.GITHUB_WEBHOOK_SECRET; // Fetch the secret from .env 
 app.use(
   bodyParser.json({
     verify: (req, res, buf, encoding) => {
-      // Store rawBody in the request object
-      req.rawBody = buf.toString(encoding || 'utf-8');
+      req.rawBody = buf.toString(encoding || 'utf-8'); // Capture raw body
+      console.log('Captured raw body:', req.rawBody); // Log for debugging
     },
   })
 );
@@ -29,12 +29,19 @@ app.post('/webhook', (req, res) => {
     return res.status(400).send('Signature missing');
   }
 
+  // Ensure rawBody exists before processing
+  if (!req.rawBody) {
+    console.error('Raw body is undefined.');
+    return res.status(400).send('Raw body is missing.');
+  }
+
   // Create HMAC to verify the payload
   const hmac = crypto.createHmac('sha1', SECRET);
   const generatedSignature = `sha1=${hmac.update(req.rawBody).digest('hex')}`;
 
   // Validate the received signature against the generated one
   if (receivedSignature !== generatedSignature) {
+    console.error('Invalid signature:', receivedSignature, generatedSignature);
     return res.status(403).send('Forbidden: Invalid Signature');
   }
 
@@ -62,6 +69,6 @@ app.post('/webhook', (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Webhook listener running on port ${PORT}`);
 });
