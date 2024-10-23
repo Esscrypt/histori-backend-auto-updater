@@ -1,5 +1,5 @@
 const express = require('express');
-const bodyParser = require('body-parser');
+const getRawBody = require('raw-body');
 const { exec } = require('child_process');
 const crypto = require('crypto');
 require('dotenv').config(); // Load environment variables from .env file
@@ -9,24 +9,49 @@ const PORT = 3001;
 const SECRET = process.env.GITHUB_WEBHOOK_SECRET; // Fetch the secret from .env file
 
 // Middleware for parsing raw body
-app.use(
-  bodyParser.json({
-    verify: (req, res, buf) => {
-      req.rawBody = buf.toString(); // Attach raw body for HMAC validation
-    },
-  })
-);
+app.use((req, res, next) => {
+  getRawBody(req, {
+    encoding: 'utf-8',
+  }, (err, string) => {
+    if (err) {
+      return next(err);
+    }
+    req.rawBody = string;
+    next();
+  });
+});
+
+app.use(express.json()); // Parse JSON body
 
 app.post('/webhook', (req, res) => {
   const payload = req.body;
+  
+  console.log('Request body:', JSON.stringify(payload, null, 2));
+  console.log('Payload ref:', payload.ref); // This should print the ref field
 
   // Verify the signature
+  // Verify the GitHub signature
   const receivedSignature = req.headers['x-hub-signature'];
+
+  // If there's no signature, deny access
+  if (!receivedSignature) {
+    return res.status(400).send('Signature missing');
+  }
+
+  // Ensure rawBody exists before processing
+  if (!req.rawBody) {
+    console.error('Raw body is undefined.');
+    return res.status(400).send('Raw body is missing.');
+  }
+
+  // Create HMAC to verify the payload
   const hmac = crypto.createHmac('sha1', SECRET);
   const generatedSignature = `sha1=${hmac.update(req.rawBody).digest('hex')}`;
 
+  // Validate the received signature against the generated one
   if (receivedSignature !== generatedSignature) {
-    return res.status(403).send('Forbidden');
+    console.error('Invalid signature:', receivedSignature, generatedSignature);
+    return res.status(403).send('Forbidden: Invalid Signature');
   }
 
   // Check if it's a push event to the main branch
